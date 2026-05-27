@@ -16,6 +16,9 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Roles } from './decorators/roles.decorator';
+import { RolesGuard } from './guards/roles.guard';
+import { Role } from '@prisma/client';
 
 // Interface untuk typing req.user yang di-set oleh JwtStrategy
 interface AuthRequest {
@@ -81,5 +84,23 @@ export class AuthController {
   @Get('me')
   getProfile(@Request() req: AuthRequest) {
     return this.authService.getProfile(req.user.userId);
+  }
+
+  /**
+   * GET /api/auth/admin-only
+   * Protected — Hanya bisa diakses oleh role ADMIN
+   */
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Endpoint khusus Admin' })
+  @ApiResponse({ status: 200, description: 'Berhasil diakses oleh Admin' })
+  @ApiResponse({ status: 403, description: 'Akses ditolak (Forbidden)' })
+  @UseGuards(JwtAuthGuard, RolesGuard) // Urutan penting: verifikasi JWT dulu, baru cek Role
+  @Roles(Role.ADMIN)
+  @Get('admin-only')
+  getAdminData(@Request() req: AuthRequest) {
+    return {
+      message: 'Selamat datang di area Admin!',
+      user: req.user,
+    };
   }
 }
