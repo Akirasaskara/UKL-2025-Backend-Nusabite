@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum Role {
+  ADMIN
+  USER
+}
+
+/**
+ * OrderStatus: Lifecycle sebuah order dari awal sampai selesai
+ *
+ * Flow: PENDING → PAID → PROCESSING → COMPLETED
+ *                              ↓
+ *                          CANCELLED (bisa dari PENDING atau PAID)
+ */
+enum OrderStatus {
+  PENDING    
+  PAID       
+  PROCESSING 
+  COMPLETED 
+  CANCELLED  
+}
+
+
+
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique         
+  password  String                   
+  name      String
+  role      Role     @default(USER)  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt      
+
+  // relasi
+  orders    Order[]
+
+  @@map("users") 
+}
+
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique   
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi satu category banyak menu
+  menus     Menu[]
+
+  @@map("categories")
+}
+
+
+model Menu {
+  id          String   @id @default(cuid())
+  name        String
+  description String?              
+  price       Decimal  @db.Decimal(10, 2)  
+  imageUrl    String?              
+  isAvailable Boolean  @default(true)      
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // foreign key
+  categoryId  String
+  category    Category     @relation(fields: [categoryId], references: [id])
+
+  orderItems  OrderItem[]
+
+  @@map("menus")
+}
+
+
+model Order {
+  id         String      @id @default(cuid())
+  totalPrice Decimal     @db.Decimal(10, 2)  
+  status     OrderStatus @default(PENDING)    
+  notes      String?                          
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  // Foreign key ke User
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+
+  // Relasi
+  orderItems OrderItem[]
+
+  @@map("orders")
+}
+
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)  
+  subtotal  Decimal @db.Decimal(10, 2)  
+
+  // Foreign key ke Order
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Foreign key ke Menu
+  menuId    String
+  menu      Menu    @relation(fields: [menuId], references: [id])
+
+  @@map("order_items")
+}
