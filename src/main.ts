@@ -32,7 +32,6 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Setup Swagger
   const config = new DocumentBuilder()
     .setTitle('NusaBite API')
     .setDescription('NusaBite Food Ordering Platform API Documentation')
@@ -46,7 +45,7 @@ async function bootstrap() {
         description: 'Masukkan JWT Token Anda',
         in: 'header',
       },
-      'JWT-auth', // Nama security schema
+      'JWT-auth',
     )
     .build();
 
