@@ -24,7 +24,9 @@ RUN npm run build
 # tapi mengekspos 3000 adalah standar fallback)
 EXPOSE 3000
 
+# Copy dan berikan izin eksekusi pada script start
+COPY start.sh ./
+RUN chmod +x start.sh
+
 # Command utama saat container berjalan
-# Kita menjalankan npx prisma migrate deploy terlebih dahulu agar database
-# selalu up-to-date setiap kali aplikasi di-deploy ulang, lalu menjalankan server.
-CMD ["sh", "-c", "DATABASE_URL=$DIRECT_URL npx prisma migrate deploy && node dist/main"]
+CMD ["./start.sh"]
