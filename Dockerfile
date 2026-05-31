@@ -11,8 +11,8 @@ COPY prisma ./prisma/
 # Install dependencies (menggunakan npm install agar lebih toleran terhadap perbedaan lockfile)
 RUN npm install
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client dengan dummy URL agar tidak crash saat build
+RUN DATABASE_URL="postgresql://postgres:dummy@localhost:5432/dummy" npx prisma generate
 
 # Copy seluruh source code
 COPY . .
