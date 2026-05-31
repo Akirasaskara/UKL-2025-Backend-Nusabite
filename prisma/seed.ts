@@ -21,10 +21,10 @@ async function main() {
   const hashedPassword = await bcrypt.hash('admin123', 10);
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@nusabite.com' },
+    where: { email: 'admin@amara.com' },
     update: {},
     create: {
-      email: 'admin@nusabite.com',
+      email: 'admin@amara.com',
       password: hashedPassword,
       name: 'Super Admin',
       role: 'ADMIN',
@@ -122,7 +122,7 @@ async function main() {
  
   console.log('\n Seed completed!');
   console.log('================================');
-  console.log(' Admin email    : admin@nusabite.com');
+  console.log(' Admin email    : admin@amara.com');
   console.log('Admin password : admin123');
   console.log('================================');
   console.log('GANTI PASSWORD INI DI PRODUCTION!');

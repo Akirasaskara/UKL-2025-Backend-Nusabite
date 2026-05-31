@@ -26,15 +26,17 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor());
   app.useGlobalFilters(new AllExceptionsFilter());
 
+  // Atur CORS agar lebih aman di Production
+  const frontendUrl = process.env.FRONTEND_URL || '*';
   app.enableCors({
-    origin: '*',
+    origin: frontendUrl,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   const config = new DocumentBuilder()
-    .setTitle('NusaBite API')
-    .setDescription('NusaBite Food Ordering Platform API Documentation')
+    .setTitle('Amara API')
+    .setDescription('Amara Food Ordering Platform API Documentation')
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -55,8 +57,8 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(` NusaBite API running on: http://localhost:${port}/api`);
-  console.log(` NusaBite Swagger Docs: http://localhost:${port}/api/docs`);
+  console.log(` Amara API running on: http://localhost:${port}/api`);
+  console.log(` Amara Swagger Docs: http://localhost:${port}/api/docs`);
 }
 
 void bootstrap();

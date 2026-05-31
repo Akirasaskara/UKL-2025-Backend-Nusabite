@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.git
+.gitignore
+README.md
+nest-cli.json
+docker-compose.yml
+Dockerfile
+.dockerignore
+test
+coverage

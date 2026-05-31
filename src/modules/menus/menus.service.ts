@@ -30,7 +30,7 @@ export class MenusService {
     if (file) {
       const uploaded = await this.cloudinaryService.uploadImage(
         file,
-        'nusabite/menus',
+        'amara/menus',
       );
       imageUrl = uploaded.secureUrl;
       this.logger.log(`Gambar diupload: ${uploaded.publicId}`);
@@ -114,7 +114,7 @@ export class MenusService {
     if (file) {
       const uploaded = await this.cloudinaryService.uploadImage(
         file,
-        'nusabite/menus',
+        'amara/menus',
       );
       imageUrl = uploaded.secureUrl;
       this.logger.log(`Gambar diupload ulang: ${uploaded.publicId}`);
