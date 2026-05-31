@@ -6,6 +6,8 @@ import { PrismaModule } from './database/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { MenusModule } from './modules/menus/menus.module';
+import { CloudinaryModule } from './common/cloudinary/cloudinary.module';
+import { OrdersModule } from './modules/orders/orders.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { MenusModule } from './modules/menus/menus.module';
     AuthModule,
     CategoriesModule,
     MenusModule,
+    CloudinaryModule,
+    OrdersModule,
   ],
   providers: [
     {

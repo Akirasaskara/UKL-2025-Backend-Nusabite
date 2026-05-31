@@ -6,9 +6,8 @@ import {
   IsPositive,
   IsBoolean,
   IsOptional,
-  IsUrl,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class CreateMenuDto {
   @ApiProperty({ example: 'Nasi Goreng Spesial', description: 'Nama menu' })
@@ -31,19 +30,16 @@ export class CreateMenuDto {
   price: number;
 
   @ApiPropertyOptional({
-    example: 'https://res.cloudinary.com/...',
-    description: 'URL gambar menu',
-  })
-  @IsUrl({}, { message: 'Format URL gambar tidak valid' })
-  @IsOptional()
-  imageUrl?: string;
-
-  @ApiPropertyOptional({
     example: true,
     description: 'Status ketersediaan menu',
   })
-  @IsBoolean()
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true || value === 1) return true;
+    if (value === 'false' || value === false || value === 0) return false;
+    return undefined;
+  })
+  @IsBoolean()
   isAvailable?: boolean;
 
   @ApiProperty({

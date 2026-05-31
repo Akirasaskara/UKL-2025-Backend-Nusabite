@@ -1,13 +1,22 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
+
+import { PaginationResult } from '../../common/interfaces/paginated-result.interface';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
+import { MenuQueryDto, SortOrder } from './dto/menu-query.dto';
 
 @Injectable()
 export class MenusService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(MenusService.name);
 
-  async create(createMenuDto: CreateMenuDto) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
+
+  async create(createMenuDto: CreateMenuDto, file?: Express.Multer.File) {
     const category = await this.prisma.category.findUnique({
       where: { id: createMenuDto.categoryId },
     });
@@ -17,17 +26,70 @@ export class MenusService {
       );
     }
 
+    let imageUrl: string | undefined;
+    if (file) {
+      const uploaded = await this.cloudinaryService.uploadImage(
+        file,
+        'nusabite/menus',
+      );
+      imageUrl = uploaded.secureUrl;
+      this.logger.log(`Gambar diupload: ${uploaded.publicId}`);
+    }
+
     return this.prisma.menu.create({
-      data: createMenuDto,
+      data: { ...createMenuDto, imageUrl },
       include: { category: true },
     });
   }
 
-  async findAll() {
-    return this.prisma.menu.findMany({
-      include: { category: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(query: MenuQueryDto): Promise<PaginationResult<any>> {
+    const {
+      page,
+      limit,
+      skip,
+      search,
+      categoryId,
+      isAvailable,
+      sortBy,
+      sortOrder,
+    } = query;
+
+    const where: any = {};
+    if (search) {
+      where.name = { contains: search, mode: 'insensitive' };
+    }
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
+    if (isAvailable !== undefined) {
+      where.isAvailable = isAvailable;
+    }
+
+    const [data, totalItems] = await this.prisma.$transaction([
+      this.prisma.menu.findMany({
+        where,
+        include: { category: true },
+        orderBy: { [sortBy]: sortOrder === SortOrder.ASC ? 'asc' : 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.menu.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return {
+      data,
+      meta: {
+        totalItems,
+        itemCount: data.length,
+        itemsPerPage: limit,
+        totalPages,
+        currentPage: page,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
   }
 
   async findOne(id: string) {
@@ -41,31 +103,32 @@ export class MenusService {
     return menu;
   }
 
-  async update(id: string, updateMenuDto: UpdateMenuDto) {
-    await this.findOne(id);
+  async update(
+    id: string,
+    updateMenuDto: UpdateMenuDto,
+    file?: Express.Multer.File,
+  ) {
+    const menu = await this.findOne(id);
 
-    if (updateMenuDto.categoryId) {
-      const category = await this.prisma.category.findUnique({
-        where: { id: updateMenuDto.categoryId },
-      });
-      if (!category) {
-        throw new NotFoundException(
-          `Kategori dengan ID ${updateMenuDto.categoryId} tidak ditemukan`,
-        );
-      }
+    let imageUrl = menu.imageUrl;
+    if (file) {
+      const uploaded = await this.cloudinaryService.uploadImage(
+        file,
+        'nusabite/menus',
+      );
+      imageUrl = uploaded.secureUrl;
+      this.logger.log(`Gambar diupload ulang: ${uploaded.publicId}`);
     }
 
     return this.prisma.menu.update({
       where: { id },
-      data: updateMenuDto,
+      data: { ...updateMenuDto, imageUrl },
       include: { category: true },
     });
   }
 
   async remove(id: string) {
     await this.findOne(id);
-    return this.prisma.menu.delete({
-      where: { id },
-    });
+    return this.prisma.menu.delete({ where: { id } });
   }
 }

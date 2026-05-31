@@ -9,7 +9,6 @@ datasource db {
   provider = "postgresql"
 }
 
-
 enum Role {
   ADMIN
   USER
@@ -30,9 +29,6 @@ enum OrderStatus {
   CANCELLED  
 }
 
-
-
-
 model User {
   id        String   @id @default(cuid())
   email     String   @unique         
@@ -42,12 +38,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt      
 
-  // relasi
-  orders    Order[]
-
   @@map("users") 
 }
-
 
 model Category {
   id        String   @id @default(cuid())
@@ -60,7 +52,6 @@ model Category {
 
   @@map("categories")
 }
-
 
 model Menu {
   id          String   @id @default(cuid())
@@ -81,25 +72,20 @@ model Menu {
   @@map("menus")
 }
 
-
 model Order {
-  id         String      @id @default(cuid())
-  totalPrice Decimal     @db.Decimal(10, 2)  
-  status     OrderStatus @default(PENDING)    
-  notes      String?                          
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id           String      @id @default(cuid())
+  tableNumber  String
+  customerName String?
+  totalPrice   Decimal     @db.Decimal(10, 2)
+  status       OrderStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
-  // Foreign key ke User
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
-
-  // Relasi
-  orderItems OrderItem[]
+  orderItems   OrderItem[]
 
   @@map("orders")
 }
-
 
 model OrderItem {
   id        String  @id @default(cuid())
