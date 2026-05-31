@@ -27,4 +27,4 @@ EXPOSE 3000
 # Command utama saat container berjalan
 # Kita menjalankan npx prisma migrate deploy terlebih dahulu agar database
 # selalu up-to-date setiap kali aplikasi di-deploy ulang, lalu menjalankan server.
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+CMD ["sh", "-c", "DATABASE_URL=$DIRECT_URL npx prisma migrate deploy && node dist/main"]
