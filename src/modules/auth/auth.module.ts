@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -17,7 +16,8 @@ import { RefreshTokenStrategy } from './strategies/refresh.strategy';
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN') ?? '15m',
+          expiresIn: (configService.get<string>('JWT_EXPIRES_IN') ??
+            '15m') as any,
         },
       }),
     }),

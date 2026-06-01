@@ -130,7 +130,10 @@ export class AuthService {
       throw new UnauthorizedException('Akses ditolak');
     }
 
-    const rtMatches = await HashUtil.compare(refreshToken, user.hashedRefreshToken);
+    const rtMatches = await HashUtil.compare(
+      refreshToken,
+      user.hashedRefreshToken,
+    );
     if (!rtMatches) {
       throw new UnauthorizedException('Akses ditolak');
     }
