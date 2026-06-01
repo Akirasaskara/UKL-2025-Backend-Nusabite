@@ -2,6 +2,7 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import compression from 'compression';
 import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -10,8 +11,9 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Security: Helmet
+  // Security: Helmet & Compression
   app.use(helmet());
+  app.use(compression());
 
   app.setGlobalPrefix('api');
 
@@ -27,11 +29,16 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
 
   // Atur CORS agar lebih aman di Production
-  const frontendUrl = process.env.FRONTEND_URL || '*';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? [process.env.FRONTEND_URL]
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+
   app.enableCors({
-    origin: frontendUrl,
+    origin: isProduction ? allowedOrigins : '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   });
 
   const config = new DocumentBuilder()
