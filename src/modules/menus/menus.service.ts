@@ -1,5 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 
 import { PaginationResult } from '../../common/interfaces/paginated-result.interface';
@@ -129,6 +135,18 @@ export class MenusService {
 
   async remove(id: string) {
     await this.findOne(id);
-    return this.prisma.menu.delete({ where: { id } });
+    try {
+      return await this.prisma.menu.delete({ where: { id } });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new BadRequestException(
+          'Menu ini tidak bisa dihapus karena sudah tercatat di riwayat pesanan pelanggan. Sebagai gantinya, silakan edit dan matikan tombol "Tersedia".',
+        );
+      }
+      throw error;
+    }
   }
 }
