@@ -6,6 +6,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -26,6 +27,15 @@ interface AuthRequest {
     userId: string;
     email: string;
     role: string;
+  };
+}
+
+interface RefreshRequest {
+  user: {
+    userId: string;
+    email: string;
+    role: string;
+    refreshToken: string;
   };
 }
 
@@ -102,5 +112,28 @@ export class AuthController {
       message: 'Selamat datang di area Admin!',
       user: req.user,
     };
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Logout user (Menghapus Refresh Token)' })
+  @ApiResponse({ status: 200, description: 'Logout berhasil' })
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  logout(@Request() req: AuthRequest) {
+    return this.authService.logout(req.user.userId);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Mendapatkan access token baru menggunakan refresh token',
+  })
+  @ApiResponse({ status: 200, description: 'Token berhasil diperbarui' })
+  @UseGuards(AuthGuard('jwt-refresh'))
+  @Post('refresh')
+  refreshTokens(@Request() req: RefreshRequest) {
+    return this.authService.refreshTokens(
+      req.user.userId,
+      req.user.refreshToken,
+    );
   }
 }
