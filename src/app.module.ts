@@ -31,6 +31,11 @@ import { HealthModule } from './modules/health/health.module';
         CLOUDINARY_CLOUD_NAME: Joi.string().required(),
         CLOUDINARY_API_KEY: Joi.string().required(),
         CLOUDINARY_API_SECRET: Joi.string().required(),
+        SMTP_HOST: Joi.string().default('smtp.gmail.com'),
+        SMTP_PORT: Joi.number().default(465),
+        SMTP_USER: Joi.string().required(),
+        SMTP_PASS: Joi.string().required(),
+        SMTP_FROM: Joi.string().default('noreply@amara.com'),
       }),
     }),
     ThrottlerModule.forRootAsync({

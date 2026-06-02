@@ -8,15 +8,32 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { HashUtil } from '../../common/utils/hash.util';
+import * as crypto from 'crypto';
+import * as nodemailer from 'nodemailer';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
+  private transporter: nodemailer.Transporter;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('SMTP_HOST'),
+      port: this.configService.get<number>('SMTP_PORT'),
+      secure: true,
+      auth: {
+        user: this.configService.get<string>('SMTP_USER'),
+        pass: this.configService.get<string>('SMTP_PASS'),
+      },
+    });
+  }
 
   async getTokens(userId: string, email: string, role: string) {
     const payload = { sub: userId, email, role };
@@ -161,5 +178,110 @@ export class AuthService {
     });
 
     return { message: 'Profil berhasil diambil', data: user };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user) {
+      return {
+        message: 'Jika email terdaftar, instruksi reset akan dikirimkan',
+      };
+    }
+
+    // Generate token reset
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    // T1 hour token
+    const resetPasswordExpires = new Date(Date.now() + 1 * 60 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: hashedResetToken,
+        resetPasswordExpires,
+      },
+    });
+
+    // Buat URL reset
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    // Kirim email
+    const mailOptions = {
+      from: this.configService.get<string>('SMTP_FROM'),
+      to: user.email,
+      subject: 'Amara - Reset Password',
+      html: `
+        <h2>Halo ${user.name},</h2>
+        <p>Anda telah meminta untuk mereset password akun Amara Anda.</p>
+        <p>Silakan klik tautan di bawah ini untuk mengatur ulang sandi Anda (berlaku selama 1 jam):</p>
+        <a href="${resetUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+        <p>Jika Anda tidak pernah meminta reset password, abaikan email ini.</p>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Error sending reset email:', error);
+      // Fallback jika SMTP gagal/belum disetting: hapus token dari DB
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { resetPasswordToken: null, resetPasswordExpires: null },
+      });
+      throw new BadRequestException(
+        'Gagal mengirim email reset. Pastikan SMTP terkonfigurasi dengan benar.',
+      );
+    }
+
+    return { message: 'Jika email terdaftar, instruksi reset akan dikirimkan' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const hashedResetToken = crypto
+      .createHash('sha256')
+      .update(dto.token)
+      .digest('hex');
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        resetPasswordToken: hashedResetToken,
+        resetPasswordExpires: {
+          gt: new Date(), // Pastikan token belum expired
+        },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException(
+        'Token reset password tidak valid atau sudah kedaluwarsa',
+      );
+    }
+
+    // Hash password baru
+    const hashedPassword = await HashUtil.hash(dto.newPassword);
+
+    // Update password dan kosongkan field reset
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    return {
+      message:
+        'Password berhasil diubah. Silakan login dengan password baru Anda.',
+    };
   }
 }
