@@ -37,7 +37,9 @@ export class MenusService {
       where: { name: { equals: createMenuDto.name, mode: 'insensitive' } },
     });
     if (existingMenu) {
-      throw new ConflictException(`Menu dengan nama "${createMenuDto.name}" sudah ada`);
+      throw new ConflictException(
+        `Menu dengan nama "${createMenuDto.name}" sudah ada`,
+      );
     }
 
     let imageUrl: string | undefined;
@@ -126,13 +128,15 @@ export class MenusService {
 
     if (updateMenuDto.name) {
       const existingMenu = await this.prisma.menu.findFirst({
-        where: { 
+        where: {
           name: { equals: updateMenuDto.name, mode: 'insensitive' },
-          id: { not: id }
+          id: { not: id },
         },
       });
       if (existingMenu) {
-        throw new ConflictException(`Menu dengan nama "${updateMenuDto.name}" sudah ada`);
+        throw new ConflictException(
+          `Menu dengan nama "${updateMenuDto.name}" sudah ada`,
+        );
       }
     }
 

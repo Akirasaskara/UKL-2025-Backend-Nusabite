@@ -27,7 +27,7 @@ export class AuthService {
     this.transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
-      secure: false, // Wajib false untuk port 587 (menggunakan STARTTLS otomatis)
+      secure: false,
       auth: {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASS'),
