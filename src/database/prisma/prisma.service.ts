@@ -29,7 +29,6 @@ export class PrismaService
   async onModuleInit() {
     await this.$connect();
   }
-  
   async onModuleDestroy() {
     await this.$disconnect();
     await this.pool.end();
