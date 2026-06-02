@@ -12,27 +12,19 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { HashUtil } from '../../common/utils/hash.util';
 import * as crypto from 'crypto';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
-  private transporter: nodemailer.Transporter;
+  private resend: Resend;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASS'),
-      },
-    });
+    this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
   }
 
   async getTokens(userId: string, email: string, role: string) {
@@ -214,31 +206,35 @@ export class AuthService {
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    // Kirim email
-    const mailOptions = {
-      from: this.configService.get<string>('SMTP_FROM'),
-      to: user.email,
-      subject: 'Amara - Reset Password',
-      html: `
-        <h2>Halo ${user.name},</h2>
-        <p>Anda telah meminta untuk mereset password akun Amara Anda.</p>
-        <p>Silakan klik tautan di bawah ini untuk mengatur ulang sandi Anda (berlaku selama 1 jam):</p>
-        <a href="${resetUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
-        <p>Jika Anda tidak pernah meminta reset password, abaikan email ini.</p>
-      `,
-    };
-
     try {
-      await this.transporter.sendMail(mailOptions);
+      const { error: resendError } = await this.resend.emails.send({
+        from:
+          this.configService.get<string>('SMTP_FROM') ||
+          'onboarding@resend.dev',
+        to: user.email,
+        subject: 'Amara - Reset Password',
+        html: `
+          <h2>Halo ${user.name},</h2>
+          <p>Anda telah meminta untuk mereset password akun Amara Anda.</p>
+          <p>Silakan klik tautan di bawah ini untuk mengatur ulang sandi Anda (berlaku selama 1 jam):</p>
+          <a href="${resetUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+          <p>Jika Anda tidak pernah meminta reset password, abaikan email ini.</p>
+        `,
+      });
+
+      if (resendError) {
+        console.error('Resend API Error:', resendError);
+        throw new Error(resendError.message);
+      }
     } catch (error) {
       console.error('Error sending reset email:', error);
-      // Fallback jika SMTP gagal/belum disetting: hapus token dari DB
+      // Fallback jika SMTP/API gagal: hapus token dari DB
       await this.prisma.user.update({
         where: { id: user.id },
         data: { resetPasswordToken: null, resetPasswordExpires: null },
       });
       throw new BadRequestException(
-        'Gagal mengirim email reset. Pastikan SMTP terkonfigurasi dengan benar.',
+        'Gagal mengirim email reset. Pastikan API Key Resend terkonfigurasi dengan benar.',
       );
     }
 
