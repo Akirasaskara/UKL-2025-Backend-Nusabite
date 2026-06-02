@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -30,6 +31,13 @@ export class MenusService {
       throw new NotFoundException(
         `Kategori dengan ID ${createMenuDto.categoryId} tidak ditemukan`,
       );
+    }
+
+    const existingMenu = await this.prisma.menu.findFirst({
+      where: { name: { equals: createMenuDto.name, mode: 'insensitive' } },
+    });
+    if (existingMenu) {
+      throw new ConflictException(`Menu dengan nama "${createMenuDto.name}" sudah ada`);
     }
 
     let imageUrl: string | undefined;
@@ -115,6 +123,18 @@ export class MenusService {
     file?: Express.Multer.File,
   ) {
     const menu = await this.findOne(id);
+
+    if (updateMenuDto.name) {
+      const existingMenu = await this.prisma.menu.findFirst({
+        where: { 
+          name: { equals: updateMenuDto.name, mode: 'insensitive' },
+          id: { not: id }
+        },
+      });
+      if (existingMenu) {
+        throw new ConflictException(`Menu dengan nama "${updateMenuDto.name}" sudah ada`);
+      }
+    }
 
     let imageUrl = menu.imageUrl;
     if (file) {
