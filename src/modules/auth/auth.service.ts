@@ -28,7 +28,7 @@ export class AuthService {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('SMTP_HOST'),
       port: port,
-      secure: port === 465, // true untuk 465, false untuk port lain (587)
+      secure: port === 587,
       auth: {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASS'),
